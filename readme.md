@@ -1,0 +1,1 @@
+Execução via terminal: uv run python gerar_pdf.py
