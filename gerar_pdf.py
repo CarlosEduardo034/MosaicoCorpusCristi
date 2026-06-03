@@ -2,26 +2,62 @@ from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 import os
+import shutil
+import tempfile
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
 
 # ==========================================
 # CONFIGURAÇÕES
 # ==========================================
 
-imagem_original = "imagem.png"
-
 COLUNAS = 5
 LINHAS = 4
+
+# ==========================================
+# SELEÇÃO DA IMAGEM
+# ==========================================
+
+Tk().withdraw()
+
+imagem_selecionada = askopenfilename(
+    title="Selecione uma imagem",
+    filetypes=[
+        ("Imagens", "*.png *.jpg *.jpeg *.bmp *.webp"),
+        ("Todos os arquivos", "*.*")
+    ]
+)
+
+if not imagem_selecionada:
+    print("Nenhuma imagem selecionada.")
+    exit()
 
 # ==========================================
 # PASTAS
 # ==========================================
 
 PASTA_RAIZ = "Mosaicos"
-PASTA_IMAGENS = os.path.join(PASTA_RAIZ, "Imagens")
+PASTA_ORIGINAL = os.path.join(PASTA_RAIZ, "Original")
 PASTA_PDF = os.path.join(PASTA_RAIZ, "PDF")
 
-os.makedirs(PASTA_IMAGENS, exist_ok=True)
+os.makedirs(PASTA_ORIGINAL, exist_ok=True)
 os.makedirs(PASTA_PDF, exist_ok=True)
+
+# ==========================================
+# COPIA A IMAGEM ORIGINAL
+# ==========================================
+
+nome_arquivo = os.path.basename(imagem_selecionada)
+
+imagem_original = os.path.join(
+    PASTA_ORIGINAL,
+    nome_arquivo
+)
+
+shutil.copy2(
+    imagem_selecionada,
+    imagem_original
+)
 
 pdf_saida = os.path.join(PASTA_PDF, "mosaico_a4.pdf")
 
@@ -104,21 +140,23 @@ for linha in range(LINHAS):
         letra_linha = chr(65 + linha)
         nome_pagina = f"{letra_linha}{coluna + 1}"
 
-        nome_imagem = os.path.join(
-            PASTA_IMAGENS,
-            f"{nome_pagina}.png"
-        )
+        with tempfile.NamedTemporaryFile(
+            suffix=".png",
+            delete=False
+        ) as arquivo_temp:
 
-        recorte.save(nome_imagem)
+            recorte.save(arquivo_temp.name)
 
-        c.drawImage(
-            nome_imagem,
-            0,
-            0,
-            width=pagina_largura,
-            height=pagina_altura,
-            preserveAspectRatio=False
-        )
+            c.drawImage(
+                arquivo_temp.name,
+                0,
+                0,
+                width=pagina_largura,
+                height=pagina_altura,
+                preserveAspectRatio=False
+            )
+
+        os.remove(arquivo_temp.name)
 
         c.showPage()
 
@@ -139,5 +177,5 @@ print("B1 B2 B3 B4 B5")
 print("C1 C2 C3 C4 C5")
 print("D1 D2 D3 D4 D5")
 print()
-print(f"Imagens: {PASTA_IMAGENS}")
+print(f"Imagem original: {imagem_original}")
 print(f"PDF: {pdf_saida}")
